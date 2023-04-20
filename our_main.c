@@ -170,23 +170,48 @@ for(i=0;i<steps;i++){
 void f_ArgCheck(int argc, char* argv[]){
 int i;
 char **p_to_arg = &argv[1];
+printf("Reading command line arguments...")
 if(argc>=2){
   for(i=1;i<argc;i++,p_to_arg++){
     if(strcmp(*(p_to_arg),"-sine")==0){
-      printf("\n%d. Sine wave chosen for Channel %d.\n",i,i);
+      printf("\n%d. Sine wave chosen.\n",i);
       wave[i-1]=1;
+      while (i<argc || i!=0){
+        if(check_additional(i,argc,argv)>i) {
+          i=check_additional(i,argc,argv);
+          p_to_arg = &argv[i];
+        }
+      }
     }
     if(strcmp(*(p_to_arg),"-square")==0){
-      printf("\n%d. Square wave chosen for Channel %d.\n",i,i);
+      printf("\n%d. Square wave chosen.\n",i);
       wave[i-1]=2;
+      while (i<argc || i!=0){
+        if(check_additional(i,argc,argv)>i) {
+          i=check_additional(i,argc,argv);
+          p_to_arg = &argv[i];
+        }
+      }
     }
     if(strcmp(*(p_to_arg),"-saw")==0){
-      printf("\n%d. Saw wave chosen  for Channel %d.\n",i,i);
+      printf("\n%d. Saw wave chosen.\n",i);
       wave[i-1]=3;
+      while (i<argc || i!=0){
+        if(check_additional(i,argc,argv)>i) {
+          i=check_additional(i,argc,argv);
+          p_to_arg = &argv[i];
+        }
+      }
     }
     if(strcmp(*(p_to_arg),"-tri")==0){
-      printf("\n%d. Triangular wave chosen for Channel %d.\n",i,i);
+      printf("\n%d. Triangular wave chosen.\n",i);
       wave[i-1]=4;
+      while (i<argc || i!=0){
+        if(check_additional(i,argc,argv)>i) {
+          i=check_additional(i,argc,argv);
+          p_to_arg = &argv[i];
+        }
+      }
     }
     }//end of for loop, checking argv[]
   }
@@ -195,6 +220,33 @@ if(argc>=2){
   }
   if (argc==2) { //if only 1 argument is input, set sine wave as default waveform the other channel
     wave[1]=2;
+  }
+}
+
+//read additional input for -amplitude value, -frequency value, -average value
+//read multiple additional input
+//return the current index of argv[]
+int check_additional(int i, int argc, char* argv[]){
+  if (i+1<argc) {
+    printf("Additional arguments detected. Reading additional arguments...");
+    if (strcmp(argv[i+1],"-amplitude")==0) {
+      amplitude = atof(argv[i+2]);
+      printf("Amplitude value is %f.\n",amplitude);
+      return i+2;
+    }
+    if (strcmp(argv[i+1],"-frequency")==0) {
+      frequency = atof(argv[i+2]);
+      printf("Frequency value is %f.\n",frequency);
+      return i+2;
+    }
+    if (strcmp(argv[i+1],"-average")==0) {
+      average = atof(argv[i+2]);
+      printf("Average value is %f.\n",average);
+      return i+2;
+    }
+  }
+  else{
+    return 0;
   }
 }
 
