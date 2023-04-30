@@ -11,12 +11,13 @@
 #include <time.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sys/resource.h>
+
+#include <sys/resource.h>
 #define	INTERRUPT	  iobase[1] + 0		// Badr1 + 0 : also ADC register
 #define	MUXCHAN		  iobase[1] + 2		// Badr1 + 2
 #define	TRIGGER		  iobase[1] + 4		// Badr1 + 4
 #define	AUTOCAL		  iobase[1] + 6		// Badr1 + 6
-#define 	DA_CTLREG	  iobase[1] + 8		// Badr1 + 8
+#define DA_CTLREG	  iobase[1] + 8		// Badr1 + 8
 
 #define	AD_DATA	  	  iobase[2] + 0		// Badr2 + 0
 #define	AD_FIFOCLR	  iobase[2] + 2		// Badr2 + 2
@@ -70,7 +71,7 @@ typedef int wave_pt[steps];  //store points of waveforms with resolution steps
 
 //initialise a pointer for datatype channel_para for variable ch
 //to get address of the value stored in ch, printf(ch);
-//*ch=1;   // *ch=1, then ch=address where 1 is stored,&ch=address of the pointer reference
+//*ch=1;  -->  *ch=1, then ch=address where 1 is stored,&ch=address of the pointer reference
 channel_para *ch;
 
 //create a 2D int array
@@ -90,6 +91,7 @@ void PCIsetup(){
 	// set all PCI_dev_info variables to 0 i.e. initialising
   memset(&info,0,sizeof(info));
   if(pci_attach(0)<0) {
+    printf("\a");
     perror("pci_attach");
     exit(EXIT_FAILURE);
   }
@@ -99,6 +101,7 @@ void PCIsetup(){
   info.DeviceId=0x01;
 
   if ((hdl=pci_attach_device(0, PCI_SHARE|PCI_INIT_ALL, 0, &info))==0) {
+    printf("\a");
     perror("pci_attach_device");
     exit(EXIT_FAILURE);
   }
@@ -113,6 +116,7 @@ void PCIsetup(){
   }
   // Modify thread control privity
   if(ThreadCtl(_NTO_TCTL_IO,0)==-1) {
+    printf("\a");
     perror("Thread Control");
     exit(1);
   }
@@ -132,7 +136,8 @@ void PCIsetup(){
 }
 
 void WaveGeneration(){
-int i;
+int i;
+
 float sineTable[steps];
 const float delta = (2.0*3.142)/steps;
  
@@ -201,6 +206,7 @@ void checkArgs(int argc, char* argv[]){
             case 'a':
                 amplitude = atof(argument_value);
                 if(amplitude < 0.0 || amplitude > 5.0){
+                  printf("\a");
                 	printf("\nERROR: Amplitude must be between 0 and 5.\n");
                 	printf("\nDefault amplitude is set to 1 instead\n");
                 	amplitude = 1.00;
@@ -211,6 +217,7 @@ void checkArgs(int argc, char* argv[]){
             case 'f':
                 frequency = atof(argument_value);
                 if(frequency < 0.5 || frequency > 10.0){
+                  printf("\a");
 					printf("\nERROR: Frequency must be between 0.5 and 10.");
 					printf("\nDefault frequency is set to 1 instead\n");
 					frequency = 1.00;
@@ -221,6 +228,7 @@ void checkArgs(int argc, char* argv[]){
             case 'm':
                 average = atof(argument_value);
                 if(average < 0.0 || average >1.0){
+                  printf("\a");
                 	printf("\nERROR: Mean must be between 0 and 1.");
                 	printf("\nDefault mean is set to 1 instead\n");
                 	average = 1.00;
@@ -229,6 +237,7 @@ void checkArgs(int argc, char* argv[]){
                 delay(500);
                 break;
             default:
+                printf("\a");
                 printf("\nInvalid argument: %s\n", argv[i]);
                 break;
         }
@@ -245,13 +254,15 @@ void checkArgs(int argc, char* argv[]){
 void MemoryAllocation(void){
 	// makes sure there is the space to store in pointer Ch 
 	if((ch = (channel_para*)malloc(1 * sizeof(channel_para))) == NULL) {
-	printf("Not enough memory.\n");
+    printf("\a");
+	  printf("Not enough memory.\n");
 }
   (*ch).amp  = amplitude;
   (*ch).mean = average;
   (*ch).freq = frequency;
 // makes sure there is 4x the space to store in pointer wave_type for the 4 different wave generated. 
 if((wave_type = (wave_pt*)malloc(4 * sizeof(wave_pt))) == NULL) {
+  printf("\a");
   printf("Not enough memory.\n");
   exit(1);
 }
@@ -268,11 +279,14 @@ void terminate(){
   out16(DA_FIFOCLR,(short) 0);
   out16(DA_Data, 0x8fff);
   pci_detach_device(hdl);
+  
   // unassign the memory of pointers ch and wave_type. 
   free((void *) ch);
   free((void *) wave_type);
   printf("Reset to Default Setting\nDetach PCI\nReleased DMA\n");
+
 }
+
 //number checker to ensure that it is within the limits.
 int getInt(int lowlimit, int highlimit) {
     int outnum;
@@ -283,10 +297,12 @@ int getInt(int lowlimit, int highlimit) {
         if (scanf("%d", &outnum) != 1) {
             // The input is not a valid integer
             while ((c = getchar()) != '\n' && c != EOF) {}//loop forever until its not enter or EOF
+            printf("\a");
             printf("Invalid input. Please enter an integer.\n");
             continue; // restart the loop in while 
         }
         if (outnum < lowlimit || outnum > highlimit) {
+            printf("\a");
             printf("Your number should be within %d and %d. Please enter a valid number.\n", lowlimit, highlimit);
             continue; //restart the loop in while
         }
@@ -298,15 +314,17 @@ int getInt(int lowlimit, int highlimit) {
 float getFloat(float lowlimit, float highlimit) {
     float outnum1 = 0.0;
     char c;
-    printf("\nEnter a float between %.2f and %.2f\n", lowlimit, highlimit);
+    printf("\nEnter a number between %.2f and %.2f\n", lowlimit, highlimit);
     while (1) {
         if (scanf("%f", &outnum1) != 1) {
             // The input is not a valid float
             while ((c = getchar()) != '\n' && c != EOF) {}//loop forever until its not enter or EOF
-            printf("Invalid input. Please enter an integer.\n");
+            printf("\a");
+            printf("Invalid input. Please enter a number.\n");
             continue; // restart the loop in while 
         }
         if (outnum1 < lowlimit || outnum1 > highlimit) {
+            printf("\a");
             printf("Your number should be within %f and %f. Please enter a valid number.\n", lowlimit, highlimit);
             continue; //restart the loop in while
         }
@@ -333,6 +351,7 @@ void changeWaveform() {
             // The input is not a valid integer
             char c;
             while ((c = getchar()) != '\n' && c != EOF) {}
+            printf("\a");
             printf("Invalid input. Please enter an integer.\n");
             continue;
         }
@@ -348,6 +367,7 @@ void changeWaveform() {
                 printf("\n%s Wave Selected\n\n", wave_str[wave[0]-1]);
                 return;// Return to main menu
             default:
+                printf("\a");
                 printf("Invalid input! Please try again.\n");
         }
     }
@@ -364,10 +384,12 @@ void saveyourfile(char *filename, FILE *fp, char *data){
     printf("\nFile saving in progress, please wait...\n");
 
     if ((fp = fopen(filename, "w")) == NULL){
+      printf("\a");
       perror("Cannot open\n\n");
       return;
     }
     if (fputs(data, fp) == EOF){
+      printf("\a");
       perror("Cannot write\n\n");
       return;
     }
@@ -382,12 +404,13 @@ void saveyourfilePrompt() {
 	FILE *fp;
     int n;
 
-    printf("\nYou have indicated to save the output to a file.\n"
-           "Please enter a filename (.txt extension will be added):\n\n"
+    printf("\nYou have selected the option to save the output to a file.\n"
+           "Please provide a file name, note that the extension '.txt' will be added):\n\n"
            "0. Return to Main Menu\n\n");
 
     n = scanf("%99s", filename);
     if (n != 1) {
+        printf("\a");
         printf("Invalid input. Please enter a valid filename.\n");
         return;
     }
@@ -412,6 +435,7 @@ void readfile(char *filename, FILE *fp) {
     printf("\nFile reading in progress, please wait...\n");
 
     if ((fp = fopen(filename, "r")) == NULL) {
+        printf("\a");
         perror("Cannot open file");
         return;
     }
@@ -427,6 +451,7 @@ void readfile(char *filename, FILE *fp) {
          (*ch).freq = chtemp.freq;
         printf("File Read Successfully\n\n");
     } else {
+        printf("\a");
         printf("File Read Fail\n\n");
     }
 
@@ -455,7 +480,9 @@ void readFilePrompt() {
 // P_Threads
 //==================================
 
-void *ThreadWave(void* arg) {
+
+void *ThreadWave(void* arg) {
+
     unsigned int current[steps];
     struct timespec start, stop;
     double accum = 0;
@@ -464,13 +491,14 @@ void readFilePrompt() {
     while (true) {
         // Generate wave data for the current channel
         for (i = 0; i < steps; i++) {
-            current[i] = (wave_type[wave[0]-1][i] * (*ch).amp)*0.6
- + ((*ch).mean*0.8 + 1.2)*0x7fff/5 * 2.5 ; // Critical Formula
+            current[i] = (wave_type[wave[0]-1][i] * (*ch).amp)*0.6 + ((*ch).mean*0.8 + 1.2)*0x7fff/5 * 2.5 ;
+            // Critical Formula
             // Scale and offset the wave data
         }
 
         // Send the wave data to the DA converter
         if (clock_gettime(CLOCK_REALTIME, &start) == -1) {
+            printf("\a");
             perror("clock gettime");
             exit(EXIT_FAILURE);
         }
@@ -479,10 +507,12 @@ void readFilePrompt() {
             out16(DA_CTLREG, 0x0a23);   // DA Enable, #0, #1, SW 5V unipolar
             out16(DA_FIFOCLR, 0);       // Clear DA FIFO buffer
             out16(DA_Data, (short)current[i]);
-            delay((1.0 / (*ch).freq*1000 - accum) / steps); // Critical Formula
+            delay((1.0 / (*ch).freq*1000 - accum) / steps);
+ // Critical Formula
         }
         
         if (clock_gettime(CLOCK_REALTIME, &stop) == -1) {
+            printf("\a");
             perror("clock gettime");
             exit(EXIT_FAILURE);
         }
@@ -502,7 +532,7 @@ void *ThreadforHardwareInput(void *arg){
     dio_in=in8(DIO_PORTA); 					// Read Port A
 
 
-    if((dio_in & 0x08) == 0x08) {
+    if( (dio_in & 0x08) == 0x08) {
       out8(DIO_PORTB, dio_in);					// output Port A value -> write to Port B
       if((dio_in & 0x04) == 0x04) {
         raise(SIGINT);
@@ -570,7 +600,7 @@ void *userinterface() {
       printf("\n|                   SETTINGS                  |");
       printf("\n+---------------------------------------------+");
       printf("\n|                   MAIN MENU                 |");
-      printf("\n| Please select an action (1-5):              |");
+      printf("\n| Please select an action (1-6):              |");
       printf("\n| 1. Change Waveform Settings                 |");
       printf("\n| 2. Change Frequency of the wave             |");
       printf("\n| 3. Save Current Settings to a File          |");
@@ -593,6 +623,7 @@ void *userinterface() {
                     break;
                 case 4:
                     if ((dio_in & 0x08) == 0x08) {
+                        printf("\a");
                         printf("\n\nPlease switch off first toggle switch\n\n");
                         delay(1000);
                     }
@@ -604,6 +635,7 @@ void *userinterface() {
                     // Clear console screen
                     system("clear");
                     if (pthread_create(&thread[2], NULL, &MainPageOutput, NULL)) {
+                        printf("\a");
                         printf("ERROR: thread \"MainPageOutput\" not created.");
                     }
                     running = false;
@@ -651,7 +683,8 @@ void signalHandler2(){
 //==================================
 
 int main(int argc, char* argv[]) {
-  struct rlimit rlim;
+
+  struct rlimit rlim;
   int j=0; //thread count
   rlim.rlim_cur=0;
   rlim.rlim_max=0;
@@ -661,22 +694,26 @@ int main(int argc, char* argv[]) {
   MemoryAllocation();
   WaveGeneration();
   
-  signal(SIGINT, signalHandler);
+  signal(SIGINT, signalHandler);
+
   signal(SIGTSTP, signalHandler2);
 
   system("clear");
   printf("\n=============CA2 Assignment===============\n\n");
 
   if(pthread_create(&thread[j], NULL, &ThreadforHardwareInput, NULL)){
+    printf("\a");
     printf("ERROR; thread \"ThreadforHardwareInput\" not created.");
   }  j++;
 
 
   if(pthread_create(&thread[j], NULL, &ThreadWave, NULL)){
+    printf("\a");
     printf("ERROR; thread \"ThreadWave\" not created.");
   }  j++;
 
   if(pthread_create(&thread[j], NULL, &MainPageOutput, NULL)){
+    printf("\a");
     printf("ERROR; thread \"MainPageOutput\" not created.");
   }  j++;
 
